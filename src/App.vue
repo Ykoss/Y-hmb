@@ -11,21 +11,23 @@
                         <a target="_blank" href="#"></a>
                     </div>
                     <div id="menu" class="right-box">
-                        <span style="display: none;">
-                            <a href="" class="">登录</a>
+                        <span v-show="$store.state.isLogin==false">
+                            <!-- <a href="" class="">登录</a> -->
+                            <router-link to="/login">登录</router-link>
                             <strong>|</strong>
                             <a href="" class="">注册</a>
                             <strong>|</strong>
                         </span>
-                        <span>
+                        <!-- 登录了显示 -->
+                        <span v-show="$store.state.isLogin==true">
                             <a href="" class="">会员中心</a>
                             <strong>|</strong>
-                            <a>退出</a>
+                            <a @click="logout">退出</a>
                             <strong>|</strong>
                         </span>
                         <!-- <a href="" class=""> -->
                         <router-link to="/shopcart">
-                            <i class="iconfont icon-cart"></i>购物车(
+                            <i class="iconfont icon-cart" ref="cart"></i>购物车(
                             <span id="shoppingCartCount">
                                 <span>{{$store.getters.cartGoodCount}}</span>
                             </span>)
@@ -122,36 +124,66 @@
 </template>
 
 <script>
-// 引入JQUERY
-import $ from "jquery";
 export default {
-    name: "app",
-    //   导航条移入滑入滑出效果
-    mounted() {
-        $("#menu2 li a").wrapInner('<span class="out"></span>');
-        $("#menu2 li a").each(function () {
-            $('<span class="over">' + $(this).text() + "</span>").appendTo(this);
-        });
+  name: "app",
+  //   导航条移入滑入滑出效果
+  mounted() {
+    $("#menu2 li a").wrapInner('<span class="out"></span>');
+    $("#menu2 li a").each(function() {
+      $('<span class="over">' + $(this).text() + "</span>").appendTo(this);
+    });
 
-        $("#menu2 li a").hover(
-            function () {
-                $(".out", this)
-                    .stop()
-                    .animate({ top: "48px" }, 300); // move down - hide
-                $(".over", this)
-                    .stop()
-                    .animate({ top: "0px" }, 300); // move down - show
-            },
-            function () {
-                $(".out", this)
-                    .stop()
-                    .animate({ top: "0px" }, 300); // move up - show
-                $(".over", this)
-                    .stop()
-                    .animate({ top: "-48px" }, 300); // move up - hide
+    $("#menu2 li a").hover(
+      function() {
+        $(".out", this)
+          .stop()
+          .animate({ top: "48px" }, 300); // move down - hide
+        $(".over", this)
+          .stop()
+          .animate({ top: "0px" }, 300); // move down - show
+      },
+      function() {
+        $(".out", this)
+          .stop()
+          .animate({ top: "0px" }, 300); // move up - show
+        $(".over", this)
+          .stop()
+          .animate({ top: "-48px" }, 300); // move up - hide
+      }
+    );
+  },
+  //  方法
+  methods: {
+    logout() {
+      this.$confirm("你确定要离开? 是否继续?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      })
+        .then(() => {
+          // 发送请求退出
+          this.$axios.get("site/account/logout").then(response => {
+            // console.log(response);
+            if (response.data.status == 0) {
+              this.$message({
+                type: "success",
+                message: "已退出!"
+              });
+              //   跳转到首页
+              this.$router.push("/index");
+              // 修改登录状态
+              this.$store.commit("changeLoginState", false);
             }
-        );
+          });
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "已取消"
+          });
+        });
     }
+  }
 };
 </script>
 
@@ -160,5 +192,10 @@ export default {
 @import url("./assets/statics/site/css/style.css");
 .menuhd ul li a span.over {
   background-color: yellowgreen;
+}
+
+/* iView提示框 样式 修改 */
+.ivu-notice {
+  text-align: left;
 }
 </style>

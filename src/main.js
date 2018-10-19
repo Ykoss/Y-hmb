@@ -18,6 +18,9 @@ Vue.use(VueLazyload, {
   // attempt: 1
 });
 
+import $ from "jquery";
+Vue.prototype.$ = $;
+
 // 导入放大镜
 import ProductZoomer from "vue-product-zoomer";
 Vue.use(ProductZoomer);
@@ -28,6 +31,8 @@ import axios from "axios";
 Vue.prototype.$axios = axios;
 // 抽取基地址
 axios.defaults.baseURL = "http://111.230.232.110:8899/";
+// 跨域是否携带凭证
+axios.defaults.withCredentials = true;
 
 // 路由相关
 import VueRouter from "vue-router";
@@ -37,6 +42,10 @@ import index from "./components/index.vue";
 import detail from "./components/detail.vue";
 // 导入shopcart组件
 import shopcart from "./components/shopcart.vue";
+// 导入订单详情
+import checkOrder from "./components/checkOrder.vue";
+// 导入登录页面
+import login from "./components/login.vue";
 
 Vue.use(VueRouter);
 // 写路由
@@ -47,25 +56,71 @@ const routes = [
   },
   {
     path: "/index",
-    component: index
+    component: index,
+
+    meta: {
+      zhName: "首页"
+    }
   },
   {
     path: "/detail/:goodId",
-    component: detail
+    component: detail,
+
+    meta: {
+      zhName: "详情页"
+    }
   },
   {
     path: "/shopcart",
-    component: shopcart
+    component: shopcart,
+
+    meta: {
+      zhName: "购物车"
+    }
+  },
+  {
+    path: "/checkOrder",
+    component: checkOrder,
+
+    meta: {
+      zhName: "订单确认页"
+    }
+  },
+  {
+    path: "/login",
+    component: login,
+    meta: {
+      zhName: "登录页"
+    }
   }
-  // {
-  //   path: "/shopcart",
-  //   component: shopcart
-  // }
 ];
 
 // 实例化路由对象
 const router = new VueRouter({
   routes
+});
+// 注册导航守卫
+router.beforeEach((to, from, next) => {
+  // console.log(to);
+  // console.log(from);
+  // console.log(next);
+  // 如果是去订单确认页, 判断有无登录
+  if (to.path == "/checkOrder") {
+    axios.get("site/account/islogin").then(response => {
+      // console.log(response);
+
+      if (response.data.code === "nologin") {
+        Vue.prototype.$message.warning('还没有登录呢!请先登录')
+        router.push("/login");
+      } else {
+        next();
+      }
+    });
+  } else {
+    next();
+  }
+
+  // ...
 });
 
 Vue.config.productionTip = false;
@@ -78,8 +133,10 @@ Vue.use(Vuex);
 const store = new Vuex.Store({
   state: {
     // count: 0
-    shopCartdata: JSON.parse(window.localStorage.getItem("cartData")) || {}
+    shopCartdata: JSON.parse(window.localStorage.getItem("cartData")) || {},
+    isLogin: false
   },
+  // 修改数据的方式
   mutations: {
     // increment(state) {
     //   state.count++;
@@ -103,7 +160,14 @@ const store = new Vuex.Store({
     },
     // 删除id对应的数据即可
     delById(state, id) {
+      // Vue.delete(state.shopCartdata, id);
+      // delete state.shopCartdata[id];
+      //使用Vue.delete删除数据同步更新VUEX数据
       Vue.delete(state.shopCartdata, id);
+    },
+    // 设置登录状态
+    changeLoginState(state, loginState) {
+      state.isLogin = loginState;
     }
   },
 

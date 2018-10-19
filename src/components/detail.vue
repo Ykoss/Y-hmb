@@ -56,7 +56,7 @@
                                         <dd>
                                             <div id="buyButton" class="btn-buy">
                                                 <button class="buy">立即购买</button>
-                                                <button @click="addCart" class="add">加入购物车</button>
+                                                <button @click="addCart" ref="toCart" class="add">加入购物车</button>
                                             </div>
                                         </dd>
                                     </dl>
@@ -98,7 +98,7 @@
                                     </div>
                                     <ul id="commentList" class="list-box">
                                         <p style="margin: 5px 0px 15px 69px; line-height: 42px; text-align: center; border: 1px solid rgb(247, 247, 247);">暂无评论，快来抢沙发吧！</p>
-                                        <li v-for="(item, index) in comments" :key="item.id">
+                                        <li v-for="item in comments" :key="item.id">
                                             <div class="avatar-box">
                                                 <i class="iconfont icon-user-full"></i>
                                             </div>
@@ -152,177 +152,205 @@
         <BackTop :height="100" :bottom="150" :right="390">
             <div class="top">返回顶端</div>
         </BackTop>
+        <img :src="imglist.length == 0 ? '' : imglist[0].original_path" class="fly-img" ref="flyImg" style="display:none" alt="">
     </div>
 
 </template>
 
 <script>
+// 导入Jquery
+// import $ from 'jquery';
 export default {
-    name: "Detail",
-    data: function () {
-        return {
-            goodId: "",
-            // 商品信息
-            goodsinfo: {},
-            //   热卖列表
-            hotgoodslist: [],
-            //   图片列表
-            imglist: [],
-            //   选择数量
-            buyNum: 1,
-            // 标记tab栏显示哪个 0 :1
-            selectIndex: 0,
-            //   页码
-            pageIndex: 1,
-            //   也容量
-            pageSize: 10,
-            // 总条数
-            totalcount: 0,
-            // 评论内容
-            comments: [],
-            //   发表的评论信息
-            message: "",
-            //   放大镜图片数据
-            images: {
-                normal_size: [
-                    {
-                        id: 1,
-                        url:
-                            "http://img4.imgtn.bdimg.com/it/u=2131988536,2410504660&fm=11&gp=0.jpg"
-                    },
-                    {
-                        id: 2,
-                        url:
-                            "http://yoohooworld.com/images/vue-product-zoomer/images/normal_size/2.jpeg"
-                    }
-                ]
-            },
-            //   zoomer的选项
-            zoomerOptions: {
-                //   放大倍数
-                zoomFactor: 4,
-                // 放大样式
-                pane: "container-round",
-                // 多久出来
-                hoverDelay: 300,
-                // 类前缀
-                namespace: "inline-zoomer",
-                // 点击一点
-                move_by_click: true,
-                // 滚动的图片张数
-                scroll_items: 5,
-                // 选中的缩略图边框颜色
-                choosed_thumb_border_color: "#bbdefb"
-            }
-        };
-    },
-    methods: {
-        // 购买数量改变触发
-        numChange() {
-            //   console.log("11");
-        },
-        // 根据ID显示商品详情数据
-        getGoodInfo() {
-            this.images.normal_size = [];
-            this.$axios
-                .get("site/goods/getgoodsinfo/" + this.goodId)
-                .then(response => {
-                    //   console.log(response);
-                    this.goodsinfo = response.data.message.goodsinfo;
-                    this.hotgoodslist = response.data.message.hotgoodslist;
-                    this.imglist = response.data.message.imglist;
-                    // 处理数据 把 imglist的值 赋值给 images
-                    let tem_normal_size = [];
-                    this.imglist.forEach(v => {
-                        tem_normal_size.push({
-                            id: v.id,
-                            url: v.thumb_path
-                        });
-                    });
-                    this.images.normal_size = tem_normal_size;
-                });
-        },
-        // 获取评论信息
-        getComments() {
-            this.$axios
-                .get(
-                    `site/comment/getbypage/goods/${this.goodId}?pageIndex=${
-                    this.pageIndex
-                    }&pageSize=${this.pageSize}`
-                )
-                .then(response => {
-                    //   console.log(response);
-                    this.totalcount = response.data.totalcount;
-                    this.comments = response.data.message;
-                    this.pageIndex = response.data.pageIndex;
-                    this.pageSize = response.data.pageSize;
-                });
-        },
-        //提交评论
-        submitCommtent() {
-            // console.log('11');
-            if (this.message == "") {
-                this.$Message.warning("哥们！写点东西呗！");
-                return;
-            }
-            this.$axios
-                .post("site/validate/comment/post/goods/" + this.goodId, {
-                    commenttxt: this.message
-                })
-                .then(response => {
-                    // console.log(response);
-                    // 发表评论之后回到第一页显示
-                    this.pageIndex = 1;
+  name: "Detail",
+  data: function() {
+    return {
+      goodId: "",
+      // 商品信息
+      goodsinfo: {},
+      //   热卖列表
+      hotgoodslist: [],
+      //   图片列表
+      imglist: [],
+      //   选择数量
+      buyNum: 1,
+      // 标记tab栏显示哪个 0 :1
+      selectIndex: 0,
+      //   页码
+      pageIndex: 1,
+      //   也容量
+      pageSize: 10,
+      // 总条数
+      totalcount: 0,
+      // 评论内容
+      comments: [],
+      //   发表的评论信息
+      message: "",
 
-                    // 重新获取评论内容
-                    this.getComments();
-                    // 清空文本内容
-                    this.message = "";
-                    // 提示发表成功
-                    this.$Message.success("发表成功！！");
-                });
-        },
-        // 页码改变
-        pageChange(pageNum) {
-            // console.log(pageNum);
-            this.pageIndex = pageNum;
-            this.getComments();
-        },
-        // 页容量改变
-        sizeChange(pageSize) {
-            // console.log(pageSize);
-            this.pageSize = pageSize;
-            this.pageIndex = 1;
-            this.getComments();
+      //   放大镜图片数据
+      images: {
+        normal_size: [
+          {
+            id: 1,
+            url:
+              "http://img4.imgtn.bdimg.com/it/u=2131988536,2410504660&fm=11&gp=0.jpg"
+          },
+          {
+            id: 2,
+            url:
+              "http://yoohooworld.com/images/vue-product-zoomer/images/normal_size/2.jpeg"
+          }
+        ]
+      },
+      //   zoomer的选项
+      zoomerOptions: {
+        //   放大倍数
+        zoomFactor: 4,
+        // 放大样式
+        pane: "container-round",
+        // 多久出来
+        hoverDelay: 300,
+        // 类前缀
+        namespace: "inline-zoomer",
+        // 点击一点
+        move_by_click: true,
+        // 滚动的图片张数
+        scroll_items: 5,
+        // 选中的缩略图边框颜色
+        choosed_thumb_border_color: "#bbdefb"
+      },
+      isFinish: true
+    };
+  },
+  methods: {
+    // 购买数量改变触发
+    numChange() {
+      //   console.log("11");
+    },
+    // 根据ID显示商品详情数据
+    getGoodInfo() {
+      this.images.normal_size = [];
+      this.$axios
+        .get("site/goods/getgoodsinfo/" + this.goodId)
+        .then(response => {
+          //   console.log(response);
+          this.goodsinfo = response.data.message.goodsinfo;
+          this.hotgoodslist = response.data.message.hotgoodslist;
+          this.imglist = response.data.message.imglist;
+          // 处理数据 把 imglist的值 赋值给 images
+          let tem_normal_size = [];
+          this.imglist.forEach(v => {
+            tem_normal_size.push({
+              id: v.id,
+              url: v.thumb_path
+            });
+          });
+          this.images.normal_size = tem_normal_size;
+        });
+    },
+    // 获取评论信息
+    getComments() {
+      this.$axios
+        .get(
+          `site/comment/getbypage/goods/${this.goodId}?pageIndex=${
+            this.pageIndex
+          }&pageSize=${this.pageSize}`
+        )
+        .then(response => {
+          //   console.log(response);
+          this.totalcount = response.data.totalcount;
+          this.comments = response.data.message;
+          this.pageIndex = response.data.pageIndex;
+          this.pageSize = response.data.pageSize;
+        });
+    },
+    //提交评论
+    submitCommtent() {
+      // console.log('11');
+      if (this.message == "") {
+        this.$Message.warning("哥们！写点东西呗！");
+        return;
+      }
+      this.$axios
+        .post("site/validate/comment/post/goods/" + this.goodId, {
+          commenttxt: this.message
+        })
+        .then(response => {
+          // console.log(response);
+          // 发表评论之后回到第一页显示
+          this.pageIndex = 1;
 
-        },
-        // 加入购物车 提交数据/载荷
-        addCart() {
-            this.$store.commit('addCart', {
-                id: this.goodId,
-                buyCount: this.buyNum
-            })
-        }
+          // 重新获取评论内容
+          this.getComments();
+          // 清空文本内容
+          this.message = "";
+          // 提示发表成功
+          this.$Message.success("发表成功！！");
+        });
     },
-    // created中获取id 因为一会就要去调用接口
-    created() {
-        this.goodId = this.$route.params.goodId;
-        this.getGoodInfo();
-        this.getComments();
+    // 页码改变
+    pageChange(pageNum) {
+      // console.log(pageNum);
+      this.pageIndex = pageNum;
+      this.getComments();
     },
-    watch: {
-        $route(to, from) {
-            // 对路由变化作出响应...
-            //   console.log(to);
-            this.goodId = to.params.goodId;
-            //   重新获取数据
-            this.getGoodInfo();
-            //   重新获取评论
-            this.getComments();
-            //   把购买数量更改为1
-            this.buyNum = 1;
-        }
+    // 页容量改变
+    sizeChange(pageSize) {
+      // console.log(pageSize);
+      this.pageSize = pageSize;
+      this.pageIndex = 1;
+      this.getComments();
+    },
+    // 加入购物车 提交数据/载荷
+    addCart() {
+      if (this.isFinish == false) return;
+      // 代码能够执行到这 说明isFinish 为true 设置isFinish 为
+      this.isFinish = false;
+      this.$(this.$refs.toCart).addClass("disabled");
+      // 通过ref获取元素
+      console.log(this.$refs.toCart);
+      // 获取按钮的位置
+      let startPos = this.$(this.$refs.toCart).offset();
+      let targetPos = this.$(this.$parent.$refs.cart).offset();
+      // 获取元素
+      this.$(this.$refs.flyImg)
+        .stop()
+        .show()
+        .addClass("animate")
+        .css(startPos)
+        .animate({ left: targetPos.left, top: targetPos.top }, 1000, () => {
+          this.$(this.$refs.flyImg)
+            .hide()
+            .removeClass("animate");
+        });
+
+      this.$store.commit("addCart", {
+        id: this.goodId,
+        buyCount: this.buyNum
+      });
+      //  设置标示变量为true即可
+      this.isFinish = true;
+      this.$(this.$refs.toCart).removeClass("disabled");
     }
+  },
+  // created中获取id 因为一会就要去调用接口
+  created() {
+    this.goodId = this.$route.params.goodId;
+    this.getGoodInfo();
+    this.getComments();
+  },
+  watch: {
+    $route(to, from) {
+      // 对路由变化作出响应...
+      //   console.log(to);
+      this.goodId = to.params.goodId;
+      //   重新获取数据
+      this.getGoodInfo();
+      //   重新获取评论
+      this.getComments();
+      //   把购买数量更改为1
+      this.buyNum = 1;
+    }
+  }
 };
 </script>
 
@@ -352,6 +380,28 @@ export default {
   color: #fff;
   text-align: center;
   border-radius: 10px;
+}
+
+/*点击购物车的动画效果*/
+.fly-img {
+  width: 60px;
+  height: 60px;
+  position: absolute;
+  /* left: 880px;
+    top: 440px; */
+  /* display: none; */
+}
+/* 移动图片的 动画样式 */
+.fly-img.animate {
+  transform: rotate(3600deg) scale(0.5, 0.5);
+  opacity: 0;
+  /* All 所有 $.aniamte 操纵了元素的 left 和 top */
+  transition: transform 1s, opacity 2s;
+  /* transition:all 1s; */
+}
+.goods-spec .spec-box .btn-buy .add.disabled {
+  background-color: gray;
+  cursor: not-allowed;
 }
 </style>
 

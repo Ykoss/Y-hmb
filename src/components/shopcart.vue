@@ -70,7 +70,7 @@
                                     </td>
                                 </tr>
                                 <!-- 买了东西的内容 -->
-                                <tr v-show="goodList.length!= 0" v-for="(item,index) in goodList" :key="item.id">
+                                <tr v-show="goodList.length!= 0" v-for="(item, index) in goodList" :key="item.id">
                                     <td>
                                         <el-switch v-model="item.selected" active-color="#13ce66" inactive-color="#ff4949">
                                         </el-switch>
@@ -81,10 +81,13 @@
                                     </td>
                                     <td>{{item.sell_price}}</td>
                                     <td>
-                                        <el-input-number size="mini" v-model="item.buycount" :min="1"></el-input-number>
+                                        <!-- $event 目的是获取原始的参数 -->
+                                        <el-input-number size="mini" @change="countChange(item.id,$event)" v-model="item.buycount" :min="1" label="描述文字"></el-input-number>
                                     </td>
                                     <td>{{item.buycount*item.sell_price}}</td>
-                                    <td><button type="button" @click="delOne(item.id)" class="el-button el-button--danger is-circle"><i class="el-icon-delete"></i></button></td>
+                                    <td>
+                                        <button type="button" @click="delOne(item.id)" class="el-button el-button--danger is-circle"><i class="el-icon-delete"></i></button>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th align="right" colspan="8">
@@ -101,8 +104,15 @@
                     <!--购物车底部-->
                     <div class="cart-foot clearfix">
                         <div class="right-box">
-                            <button class="button" onclick="javascript:location.href='/index.html';">继续购物</button>
-                            <button class="submit" onclick="formSubmit(this, '/', '/shopping.html');">立即结算</button>
+                            <!-- 点击跳转到首页 -->
+                            <router-link to="/index">
+                                <button class="button" onclick="javascript:location.href='/index.html';">继续购物</button>
+                            </router-link>
+
+                            <!-- 点击跳转到订单确认页面 -->
+                            <router-link to="/checkOrder">
+                                <button class="submit">立即结算</button>
+                            </router-link>
                         </div>
                     </div>
                     <!--购物车底部-->
@@ -115,91 +125,96 @@
 
 <script>
 export default {
-    name: "shopcart",
-    data() {
-        return {
-            // 购买的商品数组，
-            goodList: []
-        };
-    },
-    created() {
-        let ids = "";
-        for (const key in this.$store.state.shopCartdata) {
-            ids += key;
-            ids += ',';
-
-        }
-        ids = ids.slice(1, -1);
-
-        // this.$axios.get(`site/comment/getshopcargoods/${ids}`).then(response => {
-        //         console.log(response);
-
-        //     })
-        // 调用接口${} ES6的模板字符串 占位(挖坑的语法) 类似于 模板引擎的 {{}}
-        this.$axios.get(`site/comment/getshopcargoods/${ids}`).then(response => {
-            // console.log(response);
-
-            response.data.message.forEach(v => {
-                // console.log(v);
-                v.buycount = this.$store.state.shopCartdata[v.id];
-                this.$set(v, "selected", true);
-            });
-            this.goodList = response.data.message; 
-
-        });
-
-    },
-    // 事件
-    methods: {
-        delOne(id) {
-            this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(() => {
-                this.$store.commit("delOne", id)
-                this.goodList.forEach((v, index) => {
-                    if (v.id == id) {
-                        this.goodList.splice(index, 1)
-                    }
-                })
-
-                this.$message({
-                    type: 'success',
-                    message: '删除成功!'
-                });
-            }).catch(() => {
-                this.$message({
-                    type: 'info',
-                    message: '已取消删除'
-                });
-            });
-        }
-    },
-    // 计算属性
-    computed: {
-        // 选中个数
-        selectedNum() {
-            let totalNum = 0;
-            this.goodList.forEach(v => {
-                // console.log(v);
-                if (v.selected == true) {
-                    totalNum += v.buycount;
-                }
-            });
-            return totalNum;
-        },
-        selectedPrice() {
-            let totalPrice = 0;
-            this.goodList.forEach(v => {
-                if (v.selected == true) {
-                    totalPrice += v.buycount * v.sell_price;
-                }
-            });
-            return totalPrice;
-
-        }
+  name: "shopcart",
+  data() {
+    return {
+      // 购买的商品数组，
+      goodList: []
+    };
+  },
+  created() {
+    let ids = "";
+    for (const key in this.$store.state.shopCartdata) {
+      ids += key;
+      ids += ",";
     }
+    ids = ids.slice(0, -1);
+
+    // this.$axios.get(`site/comment/getshopcargoods/${ids}`).then(response => {
+    //         console.log(response);
+
+    //     })
+    // 调用接口${} ES6的模板字符串 占位(挖坑的语法) 类似于 模板引擎的 {{}}
+    this.$axios.get(`site/comment/getshopcargoods/${ids}`).then(response => {
+      // console.log(response);
+      this.goodList = response.data.message;
+      response.data.message.forEach(v => {
+        // console.log(v);
+        v.buycount = this.$store.state.shopCartdata[v.id];
+        this.$set(v, "selected", true);
+      });
+    });
+  },
+  // 事件
+  methods: {
+    countChange(id, newCount) {
+      // 个数改变
+      // 修改Vuex中的数据
+      this.$store.commit("updataCart", {
+        id,
+        newCount
+      });
+    },
+    delOne(id) {
+      this.$confirm("此操作将永久删除该文件, 是否继续?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      })
+        .then(() => {
+          this.$store.commit("delById", id);
+          this.goodList.forEach((v, index) => {
+            if (v.id == id) {
+              this.goodList.splice(index, 1);
+            }
+          });
+
+          this.$message({
+            type: "success",
+            message: "删除成功!"
+          });
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "已取消删除"
+          });
+        });
+    }
+  },
+  // 计算属性
+  computed: {
+    // 选中个数
+    selectedNum() {
+      let totalNum = 0;
+      this.goodList.forEach(v => {
+        // console.log(v);
+        if (v.selected == true) {
+          totalNum += v.buycount;
+        }
+      });
+      return totalNum;
+    },
+    selectedPrice() {
+      let totalPrice = 0;
+      this.goodList.forEach(v => {
+        if (v.selected == true) {
+          totalPrice += v.buycount * v.sell_price;
+        }
+      });
+      return totalPrice;
+    }
+  }
 };
 </script>
 
