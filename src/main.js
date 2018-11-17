@@ -52,7 +52,10 @@ Vue.use(VueRouter);
 const routes = [
   {
     path: "/",
-    component: index
+    component: index,
+    meta: {
+      zhName: "首页"
+    }
   },
   {
     path: "/index",
@@ -86,6 +89,7 @@ const routes = [
       zhName: "订单确认页"
     }
   },
+
   {
     path: "/login",
     component: login,
@@ -101,16 +105,18 @@ const router = new VueRouter({
 });
 // 注册导航守卫
 router.beforeEach((to, from, next) => {
+  window.document.title = to.meta.zhName;
   // console.log(to);
   // console.log(from);
   // console.log(next);
   // 如果是去订单确认页, 判断有无登录
   if (to.path == "/checkOrder") {
+    // if (to.meta.checkLogin == true) {
     axios.get("site/account/islogin").then(response => {
       // console.log(response);
 
       if (response.data.code === "nologin") {
-        Vue.prototype.$message.warning('还没有登录呢!请先登录')
+        Vue.prototype.$message.warning("还没有登录呢!请先登录");
         router.push("/login");
       } else {
         next();
@@ -196,7 +202,18 @@ new Vue({
   // 挂载到Vue实例
   router,
   // 挂载Vuex
-  store
+  store,
+  created() {
+    axios.get("site/account/islogin").then(response => {
+      // console.log(response);
+      // 登录了 修改Vuex中的数据
+      if (response.data.code === "logined") {
+        store.commit("changeLoginState", true);
+      } else {
+        store.commit("changeLoginState", false);
+      }
+    });
+  }
 }).$mount("#app");
 
 window.onbeforeunload = function() {

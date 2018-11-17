@@ -12,12 +12,15 @@
                     </div>
                     <div id="menu" class="right-box">
                         <span v-show="$store.state.isLogin==false">
+                            <!-- 没有登录显示 -->
                             <!-- <a href="" class="">登录</a> -->
                             <router-link to="/login">登录</router-link>
                             <strong>|</strong>
                             <a href="" class="">注册</a>
                             <strong>|</strong>
                         </span>
+
+
                         <!-- 登录了显示 -->
                         <span v-show="$store.state.isLogin==true">
                             <a href="" class="">会员中心</a>
@@ -154,6 +157,14 @@ export default {
   },
   //  方法
   methods: {
+    add() {
+      // 修改 Vuex 仓库中的数据
+      // this.$store.commit("increment");
+      this.$store.commit("addCart", {
+        id: 66,
+        buyCount: 98
+      });
+    },
     logout() {
       this.$confirm("你确定要离开? 是否继续?", "提示", {
         confirmButtonText: "确定",
